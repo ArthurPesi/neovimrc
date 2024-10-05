@@ -5,7 +5,7 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
     if vim.v.shell_error ~= 0 then
         vim.api.nvim_echo({
             { "Failed to clone lazy.nvim:\n", "ErrorMsg" },
-            { out, "WarningMsg" },
+            { out,                            "WarningMsg" },
             { "\nPress any key to exit..." },
         }, true, {})
         vim.fn.getchar()
@@ -15,10 +15,28 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
-    {'catppuccin/nvim',
+--[[    {
+        "neanias/everforest-nvim",
+        version = false,
+        lazy = false,
+        priority = 1000, -- make sure to load this before all the other start plugins
+        -- Optional; default configuration will be used if setup isn't called.
+        init = function()
+            vim.cmd.colorscheme 'everforest'
+        end,
+    },
+    {
+        'catppuccin/nvim',
         priority = 1000,
         init = function()
-            vim.cmd.colorscheme 'catppuccin-macchiato'
+            vim.cmd.colorscheme 'catppuccin-mocha'
+        end,
+    },
+--]]{
+        "ellisonleao/gruvbox.nvim",
+        priority = 1000,
+        init = function()
+            vim.cmd.colorscheme 'gruvbox'
         end,
     },
 
@@ -92,121 +110,116 @@ require("lazy").setup({
         },
     },
     { 'theprimeagen/harpoon', },
+   {
+       -- `lazydev` configures Lua LSP for your Neovim config, runtime and plugins
+       -- used for completion, annotations and signatures of Neovim apis
+       'folke/lazydev.nvim',
+       ft = 'lua',
+       opts = {
+           library = {
+               -- Load luvit types when the `vim.uv` word is found
+               { path = 'luvit-meta/library', words = { 'vim%.uv' } },
+           },
+       },
+   },
+
     {
-        -- `lazydev` configures Lua LSP for your Neovim config, runtime and plugins
-        -- used for completion, annotations and signatures of Neovim apis
-        'folke/lazydev.nvim',
-        ft = 'lua',
-        opts = {
-            library = {
-                -- Load luvit types when the `vim.uv` word is found
-                { path = 'luvit-meta/library', words = { 'vim%.uv' } },
-            },
+        -- Main LSP Configuration
+        'neovim/nvim-lspconfig',
+        dependencies = {
+            -- package manager for LSP, DAP, etc
+            { 'williamboman/mason.nvim', config = true }, -- NOTE: Must be loaded before dependants
+            -- makes mason work with lspconfig
+            'williamboman/mason-lspconfig.nvim',
+            -- ensure installed
+            'WhoIsSethDaniel/mason-tool-installer.nvim',
+            -- Allows extra capabilities provided by nvim-cmp
+            -- 'hrsh7th/cmp-nvim-lsp',
         },
-    },
+        config = function()
+            vim.api.nvim_create_autocmd('LspAttach', {
+                group = vim.api.nvim_create_augroup('kickstart-lsp-attach', { clear = true }),
+                callback = function(event)
+                    local map = function(keys, func, desc, mode)
+                        mode = mode or 'n'
+                        vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
+                    end
+                    map('gd', require('telescope.builtin').lsp_definitions, '[G]oto [D]efinition')
+                    map('<leader>D', require('telescope.builtin').lsp_type_definitions, 'Type [D]efinition')
+                    map('gr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
+                    map('gI', require('telescope.builtin').lsp_implementations, '[G]oto [I]mplementation')
+                    map('<leader>ds', require('telescope.builtin').lsp_document_symbols, '[D]ocument [S]ymbols')
+                    map('<leader>ws', require('telescope.builtin').lsp_dynamic_workspace_symbols, '[W]orkspace [S]ymbols')
+                    map('<leader>rn', vim.lsp.buf.rename, '[R]e[n]ame')
+                    -- Execute a code action, usually your cursor needs to be on top of an error
+                    -- or a suggestion from your LSP for this to activate.
+                    map('<leader>ca', vim.lsp.buf.code_action, '[C]ode [A]ction', { 'n', 'x' })
 
+                    -- WARN: This is not Goto Definition, this is Goto Declaration.
+                    --  For example, in C this would take you to the header.
+                    map('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
 
+                    if client and client.supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint) then
+                        map('<leader>th', function()
+                            vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
+                        end, '[T]oggle Inlay [H]ints')
+                    end
+                end,
+            })
 
+            local capabilities = vim.lsp.protocol.make_client_capabilities()
+            -- capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
+            local servers = {
+                clangd = {},
+                -- gopls = {},
+                -- pyright = {},
+                -- rust_analyzer = {},
+                -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
+                --
+                -- Some languages (like typescript) have entire language plugins that can be useful:
+                --    https://github.com/pmizio/typescript-tools.nvim
+                --
+                -- But for many setups, the LSP (`tsserver`) will work just fine
+                -- tsserver = {},
+                --
 
-
-{
-    -- Main LSP Configuration
-    'neovim/nvim-lspconfig',
-    dependencies = {
-        -- package manager for LSP, DAP, etc
-        { 'williamboman/mason.nvim', config = true }, -- NOTE: Must be loaded before dependants
-        -- makes mason work with lspconfig
-        'williamboman/mason-lspconfig.nvim',
-        -- ensure installed
-        'WhoIsSethDaniel/mason-tool-installer.nvim',
-        -- Allows extra capabilities provided by nvim-cmp
-        'hrsh7th/cmp-nvim-lsp',
-    },
-    config = function()
-        vim.api.nvim_create_autocmd('LspAttach', {
-            group = vim.api.nvim_create_augroup('kickstart-lsp-attach', { clear = true }),
-            callback = function(event)
-
-                local map = function(keys, func, desc, mode)
-                    mode = mode or 'n'
-                    vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
-                end
-                map('gd', require('telescope.builtin').lsp_definitions, '[G]oto [D]efinition')
-                map('<leader>D', require('telescope.builtin').lsp_type_definitions, 'Type [D]efinition')
-                map('gr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
-                map('gI', require('telescope.builtin').lsp_implementations, '[G]oto [I]mplementation')
-                map('<leader>ds', require('telescope.builtin').lsp_document_symbols, '[D]ocument [S]ymbols')
-                map('<leader>ws', require('telescope.builtin').lsp_dynamic_workspace_symbols, '[W]orkspace [S]ymbols')
-                map('<leader>rn', vim.lsp.buf.rename, '[R]e[n]ame')
-                -- Execute a code action, usually your cursor needs to be on top of an error
-                -- or a suggestion from your LSP for this to activate.
-                map('<leader>ca', vim.lsp.buf.code_action, '[C]ode [A]ction', { 'n', 'x' })
-
-                -- WARN: This is not Goto Definition, this is Goto Declaration.
-                --  For example, in C this would take you to the header.
-                map('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
-
-                if client and client.supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint) then
-                    map('<leader>th', function()
-                        vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
-                    end, '[T]oggle Inlay [H]ints')
-                end
-            end,
-        })
-
-        local capabilities = vim.lsp.protocol.make_client_capabilities()
-        capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
-        local servers = {
-            clangd = {},
-            -- gopls = {},
-            -- pyright = {},
-            -- rust_analyzer = {},
-            -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
-            --
-            -- Some languages (like typescript) have entire language plugins that can be useful:
-            --    https://github.com/pmizio/typescript-tools.nvim
-            --
-            -- But for many setups, the LSP (`tsserver`) will work just fine
-            -- tsserver = {},
-            --
-
-            lua_ls = {
-                settings = {
-                    Lua = {
-                        completion = {
-                            callSnippet = 'Replace',
+                lua_ls = {
+                    settings = {
+                        Lua = {
+                            completion = {
+                                callSnippet = 'Replace',
+                            },
                         },
                     },
                 },
-            },
-        }
+            }
 
-        require('mason').setup()
+            require('mason').setup()
 
-        -- You can add other tools here that you want Mason to install
-        -- for you, so that they are available from within Neovim.
-        local ensure_installed = vim.tbl_keys(servers or {})
-        vim.list_extend(ensure_installed, {
-            'stylua', -- Used to format Lua code
-        })
-        require('mason-tool-installer').setup { ensure_installed = ensure_installed }
+            -- You can add other tools here that you want Mason to install
+            -- for you, so that they are available from within Neovim.
+            local ensure_installed = vim.tbl_keys(servers or {})
+            vim.list_extend(ensure_installed, {
+                'stylua', 'clang-format', -- Used to format Lua code
+            })
+            require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
-        require('mason-lspconfig').setup {
-            handlers = {
-                function(server_name)
-                    local server = servers[server_name] or {}
-                    -- This handles overriding only values explicitly passed
-                    -- by the server configuration above. Useful when disabling
-                    -- certain features of an LSP (for example, turning off formatting for tsserver)
-                    server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-                    require('lspconfig')[server_name].setup(server)
-                end,
-            },
-        }
-    end,
-},
+            require('mason-lspconfig').setup {
+                handlers = {
+                    function(server_name)
+                        local server = servers[server_name] or {}
+                        -- This handles overriding only values explicitly passed
+                        -- by the server configuration above. Useful when disabling
+                        -- certain features of an LSP (for example, turning off formatting for tsserver)
+                        server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+                        require('lspconfig')[server_name].setup(server)
+                    end,
+                },
+            }
+        end,
+    },
 
-
+    --[[
     { -- Autocompletion
         'hrsh7th/nvim-cmp',
         event = 'InsertEnter',
@@ -246,8 +259,7 @@ require("lazy").setup({
             }
         end,
     },
-
-    { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
-
--- fechar setup
+--]]
+    { 'mbbill/undotree' },
+    -- fechar setup
 })
