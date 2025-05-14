@@ -14,9 +14,13 @@ vim.opt.updatetime = 50
 
 vim.opt.incsearch = true
 
+vim.opt.swapfile = false
 vim.opt.undofile = true
 
 vim.opt.hlsearch = false
+
+vim.opt.termguicolors = true
+
 
 vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
