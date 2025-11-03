@@ -92,11 +92,17 @@ require("lazy").setup({
             end, { desc = '[S]earch [N]eovim files' })
         end,
     },
+     {
+        "folke/todo-comments.nvim",
+        dependencies = { "nvim-lua/plenary.nvim" },
+        opts = {}
+    },
     {
         'nvim-treesitter/nvim-treesitter',
         build = ':TSUpdate',
         main = 'nvim-treesitter.configs',
         opts = {
+            force_all = false,
             ensure_installed = { 'bash', 'java', 'php', 'kotlin', 'c', 'diff','python', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
             -- Autoinstall languages that are not installed
             auto_install = true,
@@ -175,7 +181,7 @@ require("lazy").setup({
                 quick_lint_js = {},
                 phpactor = {},
                 jdtls = {},
-                -- gopls = {}
+                gopls = {},
                 pyright = {},
                 omnisharp = {
 --                        on_attach = on_attach,

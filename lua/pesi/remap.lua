@@ -8,7 +8,6 @@ vim.keymap.set("n", "<C-u>", "<c-u>zz")
 
 vim.keymap.set("n", "<leader>/", "_i// <Esc>")
 
-vim.keymap.set("n", "<leader>ex", vim.cmd.Ex)
 vim.keymap.set("x", "<leader>p", [["_dP]])
 vim.keymap.set({"n", "v"}, "<leader>d", [["_d]])
 
