@@ -177,12 +177,13 @@ require("lazy").setup({
             local capabilities = vim.lsp.protocol.make_client_capabilities()
             -- capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
             local servers = {
-                clangd = {},
+                clangd = {"clangd", "--clang-tidy-checks=-*"},
                 quick_lint_js = {},
                 phpactor = {},
                 jdtls = {},
                 gopls = {},
                 pyright = {},
+                glsl_analyzer = {},
                 omnisharp = {
 --                        on_attach = on_attach,
 --                          capabilities = capabilities,
@@ -285,6 +286,8 @@ require("lazy").setup({
     { 'mbbill/undotree' },
     -- fechar setup
 })
+
+vim.treesitter.language.register('glsl', 'vs')
 
 local on_attach = function(client, bufnr)
   local function buf_set_keymap(...) vim.api.nvim_buf_set_keymap(bufnr, ...) end
